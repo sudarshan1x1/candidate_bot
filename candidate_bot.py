@@ -9,7 +9,7 @@ from botbuilder.dialogs.prompts import (
     PromptValidatorContext
 )
 from botbuilder.dialogs.choices import Choice
-from c_model import Model
+from c_model import Job_Description
 
 class CandidateBot(ActivityHandler):
 
@@ -20,12 +20,11 @@ class CandidateBot(ActivityHandler):
         self.dialogset = DialogSet(self.state_prop)
         self.dialogset.add(TextPrompt("text_prompt"))
         self.dialogset.add(NumberPrompt("number_prompt", self.IsValidMobileNumber))
-        self.dialogset.add(NumberPrompt("salary_prompt"))
         self.dialogset.add(ChoicePrompt(ChoicePrompt.__name__))
         self.dialogset.add(WaterfallDialog("main_dialog",
-        [self.get_name,self.get_phone_number,self.get_email,self.get_education,self.get_field,self.get_designation,
-        self.get_workexp,self.role,self.roles,self.tech_stack,self.location,self.current_salary,self.end_dialog]))
-        self.model = Model()
+        [self.get_name,self.get_phone_number,self.get_email,self.get_location,self.get_education,self.get_field,self.get_college,
+        self.tech_stack,self.get_workexp,self.get_designation,self.role,self.get_jd,self.end_dialog]))
+
 
     async def welcome_user(self, turn_context: TurnContext):
         if turn_context.activity.text is None :
@@ -62,8 +61,13 @@ class CandidateBot(ActivityHandler):
         return await waterfall_step.prompt("text_prompt",
         PromptOptions(prompt=MessageFactory.text("Enter your Email Id")))
 
-    async def get_education(self,waterfall_step: WaterfallStepContext):
+    async def get_location(self,waterfall_step: WaterfallStepContext):
         waterfall_step.values['email'] = waterfall_step._turn_context.activity.text
+        return await waterfall_step.prompt("text_prompt",
+        PromptOptions(prompt=MessageFactory.text("Enter your Location")))
+     
+    async def get_education(self,waterfall_step: WaterfallStepContext):
+        waterfall_step.values['location'] = waterfall_step._turn_context.activity.text
         listofchoice = [Choice("Diploma"), Choice("Bachelor's Degree"), Choice("Master's Degree"), Choice("Doctoral Degree")]
         return await waterfall_step.prompt(ChoicePrompt.__name__,
         PromptOptions(prompt=MessageFactory.text("What is the highest level of education you have completed?"),choices=listofchoice))
@@ -71,67 +75,64 @@ class CandidateBot(ActivityHandler):
     async def get_field(self, waterfall_step: WaterfallStepContext):
         waterfall_step.values['education']= waterfall_step.result.value
         return await waterfall_step.prompt("text_prompt",
-        PromptOptions(prompt=MessageFactory.text("Enter the field you've obtained your highest Degree in")))
+        PromptOptions(prompt=MessageFactory.text("Enter the Domain you've obtained your highest Degree in")))
            
-    async def get_designation(self,waterfall_step: WaterfallStepContext):
+    async def get_college(self,waterfall_step: WaterfallStepContext):
         waterfall_step.values['field'] = waterfall_step._turn_context.activity.text
-        return await waterfall_step.prompt('text_prompt', 
-        PromptOptions(prompt=MessageFactory.text("What is your current job title/ role ?")))
-    
-    async def get_workexp(self,waterfall_step: WaterfallStepContext):
-        waterfall_step.values['designation']= waterfall_step._turn_context.activity.text
-        listofchoice = [Choice("Fresher"), Choice("1-2 years"), Choice('3-5years'), Choice('5-8 years'), Choice('8+ years')]
-        return await waterfall_step.prompt(ChoicePrompt.__name__,
-        PromptOptions(prompt=MessageFactory.text("Select your Work-Experience"),choices=listofchoice))
-       
-    async def role(self,waterfall_step: WaterfallStepContext):
-        waterfall_step.values['work_exp'] = waterfall_step.result.value
-        listofchoice = [Choice("Internship"), Choice("Full-time")]
-        return await waterfall_step.prompt(ChoicePrompt.__name__,
-        PromptOptions(prompt=MessageFactory.text("Which Role are you applying For? "),choices=listofchoice))
-    
-    async def roles(self,waterfall_step: WaterfallStepContext):
-        role = waterfall_step.result.value
-        if role == 'Internship' :
-            listofchoice = [Choice("AI/ML Intern"), Choice("Software Developer Intern")]
-        elif role == 'Full-time':
-            listofchoice = [Choice('AI/ML engineer'), Choice("Software Developer Engineer")]
+        return await waterfall_step.prompt("text_prompt",
+        PromptOptions(prompt=MessageFactory.text("Enter the college/university you obtained the degree")))
         
-        return await waterfall_step.prompt(ChoicePrompt.__name__,
-        PromptOptions(prompt=MessageFactory.text("These are the available Roles for you"),choices=listofchoice))
-    
     async def tech_stack(self,waterfall_step: WaterfallStepContext):
-        waterfall_step.values['role'] = waterfall_step.result.value
+        waterfall_step.values['college'] = waterfall_step._turn_context.activity.text
         listofchoice = [Choice('.NET'),Choice('PHP'), Choice('Full-Stack'), Choice('Azure')]
         return await waterfall_step.prompt(ChoicePrompt.__name__,
         PromptOptions(prompt=MessageFactory.text("Select your tech stack "),choices=listofchoice))
-    
-    async def location(self,waterfall_step: WaterfallStepContext):
+       
+    async def get_workexp(self,waterfall_step: WaterfallStepContext):
         waterfall_step.values['tech_stack'] = waterfall_step.result.value
-        listofchoice = [Choice('On-Location'), Choice('Remote-Work')]
+        listofchoice = [Choice("Fresher"), Choice("1-2 years"), Choice('3-5years'), Choice('5-8 years'), Choice('8+ years')]
         return await waterfall_step.prompt(ChoicePrompt.__name__,
-        PromptOptions(prompt=MessageFactory.text("What is your mode of work preference?"),choices=listofchoice))
-
+        PromptOptions(prompt=MessageFactory.text("Select your Work-Experience"),choices=listofchoice))
     
-    async def current_salary(self,waterfall_step:WaterfallStepContext):
-        waterfall_step.values['location'] = waterfall_step.result.value
-        return await waterfall_step.prompt('salary_prompt', 
-        PromptOptions(prompt=MessageFactory.text("Could please provide your Current Salary Expectations?")))
+    async def get_designation(self, waterfall_step: WaterfallStepContext):
+        waterfall_step.values['work_exp'] = waterfall_step.result.value
+        return await waterfall_step.prompt('text_prompt', 
+        PromptOptions(prompt=MessageFactory.text("Enter your designation")))
+               
+    async def role(self,waterfall_step: WaterfallStepContext):
+        waterfall_step.values['designation'] = waterfall_step._turn_context.activity.text
+        listofchoice = [Choice("AI/ML Intern"), Choice("Software Developer Intern"),
+        Choice('AI/ML engineer'), Choice("Software Developer Engineer")]
+        return await waterfall_step.prompt(ChoicePrompt.__name__,
+        PromptOptions(prompt=MessageFactory.text("These are the available Roles for you!\n Which Role are you applying For? "),choices=listofchoice))
+      
+    async def get_jd(self, waterfall_step: WaterfallStepContext):
+        waterfall_step.values['role'] = waterfall_step.result.value
+        await waterfall_step.context.send_activity(f"You have selected {waterfall_step.values['role']}.")
+        await waterfall_step.context.send_activity("Here is the job description for this role: \n")
+    # Get the job description from the Job_Description class
+        job_description = Job_Description(waterfall_step.values['role'])
+        await waterfall_step.context.send_activity(job_description.get_description())
+
+        listofchoice = [Choice("Yes"), Choice("No")]
+        return await waterfall_step.prompt(ChoicePrompt.__name__,
+        PromptOptions(prompt=MessageFactory.text("Do you accept to apply for this role?"),choices=listofchoice))
         
     async def end_dialog(self, waterfall_step: WaterfallStepContext):
-        waterfall_step.values['current_salary'] = waterfall_step._turn_context.activity.text
+        waterfall_step.values['choice'] = waterfall_step.result.value
         self.profileinfo = {
             "Name": waterfall_step.values['name'],
             "Phone no": waterfall_step.values['mobile'],
             "Email": waterfall_step.values['email'],
+            "Location": waterfall_step.values['location'],
             "Education": waterfall_step.values['education'],
             "Field": waterfall_step.values['field'],
-            "Designation": waterfall_step.values['designation'],
-            "Work Experience": waterfall_step.values['work_exp'],
-            "Role": waterfall_step.values['role'],
+            "College": waterfall_step.values['college'],
             "Tech Stack": waterfall_step.values['tech_stack'],
-            "Location": waterfall_step.values['location'],
-            "Current Salary": waterfall_step.values['current_salary']
+            "Work Experience": waterfall_step.values['work_exp'],
+            "Designation": waterfall_step.values['designation'],
+            "Role": waterfall_step.values['role'],
+            "Choice": waterfall_step.values['choice']
             }
         await waterfall_step.end_dialog()
         
